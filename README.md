@@ -25,7 +25,7 @@ VTT is a high-performance analysis engine designed to quantify "device-coded" fu
 ### Installation
 1.  **Clone the repository**
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/valorant-tracker.git](https://github.com/YOUR_USERNAME/valorant-tracker.git)
+    git clone [https://github.com/vn-device/valorant-tracker.git](https://github.com/vn-device/valorant-tracker.git)
     cd valorant-tracker
     ```
 
@@ -49,4 +49,4 @@ This tool adheres to Riot Games' third-party developer policies.
 * API keys are strictly git-ignored.
 
 ---
-*Maintained by [Your Name]*
+*Maintained by vn-device*
