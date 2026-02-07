@@ -1,0 +1,23 @@
+# Python Standard
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Project Specific (Valorant/AI)
+*.mp4
+*.mkv
+models/*.pt      # PyTorch checkpoints (use LFS instead)
+models/*.onnx
+data/raw/        # Don't commit raw datasets
+logs/
+config/secrets.yaml  # NEVER commit API keys or Riot IDs
