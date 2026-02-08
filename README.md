@@ -1,52 +1,53 @@
-# Valorant Tactical Telemetry (VTT)
+# Device Tactical Analyst (DTA)
 
-> **Status:** Active Development  
-> **Architecture:** Low-Latency Computer Vision & Riot API Integration
+> **Status:** Stable Release (v1.0)
+> **Architecture:** Modular Python Analysis Engine & HenrikAPI Integration
 
 ## ⚡ System Overview
-VTT is a high-performance analysis engine designed to quantify "device-coded" fundamentals in tactical FPS scenarios. Unlike standard trackers that rely solely on post-match aggregate stats, VTT fuses real-time telemetry with computer vision to isolate mechanical consistency and positioning errors.
+**Device Tactical Analyst** is a specialized telemetry tool designed to audit Valorant gameplay against the "Device Philosophy"—the tactical framework of Nicolai "device" Reedtz.
 
-### Core Modules
-* **Device Engine (`src/device_engine.py`):** The physics core. Handles local state processing and input latency compensation calculations.
-* **API Client (`src/api_client.py`):** Asynchronous wrapper for the Riot API, optimized for burst-rate limit handling and minimal overhead.
-* **CV Pipeline (Planned):** Real-time crosshair placement validation using OpenCV.
+Unlike standard trackers that prioritize raw K/D, this engine isolates **Systemic Discipline**:
+* **Untradeability Index:** Measures your ability to reset positioning after a kill (Survival Rate).
+* **Opening Duel Discipline:** Audits "First Death" rates to prevent over-aggression.
+* **Economy Efficiency:** (In Progress) Calculates ROI on Operator purchases.
 
 ## 🛠️ Technical Stack
 * **Language:** Python 3.10+
-* **Concurrency:** AsyncIO for non-blocking API telemetry.
-* **State Management:** Localized discrete event simulation (DES) for match reconstruction.
+* **API Integration:** [HenrikDev Valorant API (v3)](https://github.com/Henrik-3/valorant-libs)
+* **Resilience:** Custom `@retry_with_backoff` decorators for rate-limit handling.
+* **Analysis Core:**
+    * `DeviceEngine`: Calculates Survival Rate & KAST alignment.
+    * `OpeningDuelAnalyzer`: Reconstructs round timelines to audit entry aggression using PUUID tracing.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-* Python 3.10+
-* Riot Developer Key (stored locally in `.env`)
+* Python 3.10 or higher
+* A free API Key from [HenrikDev](https://henrikdev.xyz/)
 
 ### Installation
+
 1.  **Clone the repository**
     ```bash
     git clone [https://github.com/vn-device/valorant-tracker.git](https://github.com/vn-device/valorant-tracker.git)
     cd valorant-tracker
     ```
 
-2.  **Environment Setup**
+2.  **Install Dependencies**
     ```bash
-    python -m venv env
-    .\env\Scripts\activate
     pip install -r requirements.txt
     ```
 
 3.  **Configuration**
-    Create a `.env` file in the root:
+    Create a `.env` file in the root directory and populate it with your details:
     ```ini
-    RIOT_API_KEY=RGAPI-xxxx-xxxx
+    HENRIK_API_KEY=HDEV-xxxx-xxxx-xxxx
+    VALORANT_NAME=YourName
+    VALORANT_TAG=YourTag
     ```
 
-## 🔒 Security & Compliance
-This tool adheres to Riot Games' third-party developer policies.
-* No memory reading or injection.
-* Passive screen analysis only.
-* API keys are strictly git-ignored.
+### Usage
 
----
-*Maintained by vn-device*
+**Standard Analysis (Last 3 Competitive Games)**
+```bash
+python main.py

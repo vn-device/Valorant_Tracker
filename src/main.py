@@ -1,13 +1,30 @@
+import argparse
 from api_client import HenrikAPIClient
 from device_engine import DeviceEngine
 from config import Config
 
 def main():
-    print(f"Initializing Tactical Analysis for {Config.NAME}#{Config.TAG}...\n")
+    # 1. Setup CLI Argument Parsing
+    parser = argparse.ArgumentParser(description="Analyze recent Valorant matches for tactical 'Device' alignment.")
+    parser.add_argument(
+        "count", 
+        type=int, 
+        nargs="?", 
+        default=3, 
+        help="Number of past competitive games to analyze (default: 3)"
+    )
+    args = parser.parse_args()
+
+    # Safety Check
+    if args.count < 1:
+        print("Error: Please request at least 1 match.")
+        return
+
+    print(f"Initializing Tactical Analysis for {Config.NAME}#{Config.TAG} (Last {args.count} Games)...\n")
     
-    # 1. Ingest (Last 3 Competitive Games)
+    # 2. Ingest (Dynamic Limit)
     client = HenrikAPIClient()
-    matches = client.get_competitive_matches(limit=3)
+    matches = client.get_competitive_matches(limit=args.count)
     
     if not matches:
         print("Aborting: Could not fetch match data.")
@@ -19,12 +36,10 @@ def main():
     total_kills = 0
     total_deaths = 0
 
-    # 2. Analyze & Loop
+    # 3. Analyze & Loop
     for i, match_data in enumerate(matches, 1):
         engine = DeviceEngine(match_data)
         
-        # We need to extract raw stats for the session summary
-        # (This relies on the engine finding the player correctly)
         if engine.hero_stats:
             stats = engine.hero_stats['stats']
             match_rounds = match_data['metadata']['rounds_played']
@@ -35,14 +50,15 @@ def main():
             total_kills += stats['kills']
             
             # Print Individual Report
-            # Uses .get() to safely fall back if the key is missing, preventing a crash
-            print(f"--- Game {i}: {match_data['metadata']['map']} ({match_data['metadata'].get('game_start_patched', 'Unknown Date')}) ---")
-            print(engine.analyze_untradeability())
+            # Uses .get() to safely fall back if the key is missing
+            game_date = match_data['metadata'].get('game_start_patched', 'Unknown Date')
+            print(f"--- Game {i}: {match_data['metadata']['map']} ({game_date}) ---")
+            print(engine.generate_report())
             print("\n" + "="*40 + "\n")
         else:
             print(f"--- Game {i}: Player data not found ---\n")
 
-    # 3. Session Insight (The Device Consistency Check)
+    # 4. Session Insight
     if total_rounds > 0:
         session_survival = ((total_rounds - total_deaths) / total_rounds) * 100
         session_kd = total_kills / total_deaths if total_deaths > 0 else total_kills

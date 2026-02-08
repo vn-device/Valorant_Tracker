@@ -1,59 +1,74 @@
-from typing import Dict, Any
-from config import Config
+from typing import Dict, Any, List
 
 class OpeningDuelAnalyzer:
-    def __init__(self, match_data: Dict[str, Any]):
+    def __init__(self, match_data: Dict[str, Any], hero_puuid: str):
         self.match = match_data
-        self.name = Config.NAME.lower()
-        self.tag = Config.TAG.lower()
+        self.hero_puuid = hero_puuid
 
     def analyze(self) -> Dict[str, float]:
-        """
-        Scans all rounds to calculate:
-        1. First Bloods (FB): You killed the first enemy.
-        2. First Deaths (FD): You died first.
-        3. Attempt Rate: How often you are involved in the first fight.
-        """
+        if not self.hero_puuid:
+            return {"fb": 0, "fd": 0, "win_rate": 0.0, "fd_rate": 0.0, "attempts": 0}
+
         first_bloods = 0
         first_deaths = 0
         rounds_played = 0
 
-        # The API structure for rounds contains 'player_stats' and 'kill_events'
         rounds = self.match.get('rounds', [])
         
         for round_data in rounds:
             rounds_played += 1
-            kill_events = round_data.get('player_stats', []) 
-            # Note: v3 API organizes kills inside 'kill_events' list usually, 
-            # but sometimes we must look at the event log. 
-            # Let's try the direct 'kill_events' array if available, or parse stats.
             
-            # Robust extraction of the first kill in the round
-            events = round_data.get('defuse_events', []) + round_data.get('plant_events', []) + round_data.get('kill_events', [])
-            
-            # Filter only kills and sort by time
-            kills = [e for e in events if 'killer_display_name' in e]
-            kills.sort(key=lambda x: x.get('kill_time_in_round', 999999))
+            all_kills = []
 
-            if not kills:
+            # --- STRATEGY 1: Global Event Log (Preferred) ---
+            raw_kills = round_data.get('kill_events')
+            if raw_kills and isinstance(raw_kills, list):
+                all_kills = raw_kills
+            
+            # --- STRATEGY 2: Player Stats Fallback ---
+            # Only run this if Strategy 1 failed
+            elif not all_kills:
+                stats = round_data.get('player_stats', [])
+                for player in stats:
+                    killer_id = player.get('player_puuid')
+                    
+                    # CRITICAL FIX: Check if 'kills' is a list or just a number
+                    player_kills = player.get('kills', [])
+                    
+                    if isinstance(player_kills, (int, float)):
+                        # Data is just a count (e.g. 2). No timestamps available. Skip.
+                        continue
+                    
+                    if isinstance(player_kills, list):
+                        for k in player_kills:
+                            # Inject implicit killer ID
+                            if isinstance(k, dict):
+                                k['killer_puuid'] = killer_id
+                                all_kills.append(k)
+
+            # --- ANALYSIS LOGIC ---
+            if not all_kills:
+                # If no kill data exists for this round, we skip it without crashing.
                 continue
 
-            first_kill = kills[0]
+            # Sort by time
+            valid_kills = [k for k in all_kills if isinstance(k, dict) and k.get('kill_time_in_round') is not None]
+            valid_kills.sort(key=lambda x: x.get('kill_time_in_round'))
+
+            if not valid_kills:
+                continue
+
+            first_kill = valid_kills[0]
             
-            # Check if user is involved
-            # API names often include tag, or just name. We check strict containment or exact match.
-            killer_name = first_kill.get('killer_display_name', '').lower()
-            victim_name = first_kill.get('victim_display_name', '').lower()
-            
-            # We match against the Config name
-            # Note: The API 'display_name' usually looks like "device#4102"
-            user_full = f"{self.name}#{self.tag}"
-            
-            if user_full in killer_name or self.name in killer_name:
+            k_id = first_kill.get('killer_puuid')
+            v_id = first_kill.get('victim_puuid')
+
+            if k_id == self.hero_puuid:
                 first_bloods += 1
-            elif user_full in victim_name or self.name in victim_name:
+            elif v_id == self.hero_puuid:
                 first_deaths += 1
 
+        # --- FINAL CALCS ---
         total_duels = first_bloods + first_deaths
         win_rate = (first_bloods / total_duels * 100) if total_duels > 0 else 0.0
         fd_rate = (first_deaths / rounds_played * 100) if rounds_played > 0 else 0.0
